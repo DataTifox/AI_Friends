@@ -34,6 +34,21 @@ class Database:
 
     def initialize(self) -> None:
         self.database_path.parent.mkdir(parents=True, exist_ok=True)
+        if self.database_path.is_file():
+            with self.connection() as connection:
+                old_schema = connection.execute(
+                    "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'messages'"
+                ).fetchone()
+                upgraded = connection.execute(
+                    "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'summaries'"
+                ).fetchone()
+                backup_path = self.database_path.with_name(self.database_path.stem + '.pre-continuity.db')
+                if old_schema and not upgraded and not backup_path.exists():
+                    backup = sqlite3.connect(backup_path)
+                    try:
+                        connection.backup(backup)
+                    finally:
+                        backup.close()
         with self.connection() as connection:
             connection.executescript(
                 """
@@ -55,6 +70,7 @@ class Database:
 
                 CREATE INDEX IF NOT EXISTS idx_messages_conversation_created
                 ON messages(conversation_id, id);
+                CREATE INDEX IF NOT EXISTS idx_messages_created_at ON messages(created_at, id);
 
                 CREATE TABLE IF NOT EXISTS memories (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -65,5 +81,35 @@ class Database:
 
                 CREATE INDEX IF NOT EXISTS idx_memories_importance_created
                 ON memories(importance DESC, id DESC);
+
+                CREATE TABLE IF NOT EXISTS summaries (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    conversation_id INTEGER NOT NULL REFERENCES conversations(id),
+                    start_message_id INTEGER NOT NULL REFERENCES messages(id),
+                    end_message_id INTEGER NOT NULL REFERENCES messages(id),
+                    content TEXT NOT NULL,
+                    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(conversation_id, end_message_id)
+                );
+                CREATE INDEX IF NOT EXISTS idx_summaries_conversation
+                ON summaries(conversation_id, end_message_id DESC);
+
+                CREATE TABLE IF NOT EXISTS followups (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    topic TEXT NOT NULL UNIQUE,
+                    kind TEXT NOT NULL,
+                    source_message_id INTEGER NOT NULL REFERENCES messages(id),
+                    due_at TEXT NOT NULL,
+                    status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active', 'dismissed')),
+                    last_asked_at TEXT,
+                    last_question_message_id INTEGER REFERENCES messages(id),
+                    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+                );
+                CREATE INDEX IF NOT EXISTS idx_followups_due ON followups(status, due_at);
+                CREATE INDEX IF NOT EXISTS idx_followups_asked ON followups(last_asked_at DESC);
+                CREATE TABLE IF NOT EXISTS companion_preferences (
+                    key TEXT PRIMARY KEY,
+                    value TEXT NOT NULL
+                );
                 """
             )

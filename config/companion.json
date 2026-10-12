@@ -1,0 +1,31 @@
+{
+  "_comments": {
+    "_usage": "中文说明区，不参与运行。在交互设置页保存后立即生效；手工修改此文件后需重启。JSON 不支持 // 或 # 注释。",
+    "recent_messages": "每次发给模型的最近消息条数；用户消息和 AI 回复分别算一条，不是对话轮数。至少 1。",
+    "history_page_size": "界面启动或加载更早记录时，每次从数据库读取的消息条数。至少 1，不影响原始记录保存。",
+    "summary_batch_size": "一次摘要最多处理的旧消息条数，也是当天旧消息积累后的摘要触发阈值。至少 2；前一天的旧消息不足这个数量也可汇总。",
+    "summary_count": "每次发给模型的最近阶段摘要数量。至少 1；不会把全部历史摘要都发送给模型。",
+    "summary_max_chars": "每份摘要保存的最大字符数。至少 1，生成结果超过上限会截断。",
+    "context_max_chars": "普通聊天请求中人格、记忆、摘要和最近消息的总字符上限。至少 2000；按字符计算，不是 token 数。原始消息不会因此截断或删除。",
+    "followups_enabled": "是否允许主动关心（true/false）。设为 false 时，聊天中说开启主动关心也不能启用；设为 true 后仍受用户在聊天中保存的关闭状态约束。",
+    "followup_delay_days": "首次识别购买或学习事项后，等待多少天才允许主动跟进。至少 1，不代表到点立即发言。",
+    "followup_cooldown_days": "同一话题问过一次后等待的天数；用户主动提到进展或直接回复跟进问题时，也按这个天数延期。至少 1。",
+    "followup_expiry_days": "事项来源消息超过多少天后不再自动跟进。至少 1，不删除消息；同一话题出现新的明确经历可更新来源。",
+    "followup_idle_seconds": "前台对话页至少空闲多少秒才允许主动关心。至少 0；还要求输入框为空且没有请求进行中。",
+    "quiet_start_hour": "静默开始的北京时间整点，0–23（包含该整点）。例如 22 表示从晚上十点起不主动发言。",
+    "quiet_end_hour": "静默结束的北京时间整点，0–23（不包含该整点）。例如 9 表示上午九点后可主动发言。支持跨午夜；与开始时间相同表示不设置静默时段。"
+  },
+  "recent_messages": 12,
+  "history_page_size": 50,
+  "summary_batch_size": 24,
+  "summary_count": 3,
+  "summary_max_chars": 800,
+  "context_max_chars": 16000,
+  "followups_enabled": true,
+  "followup_delay_days": 3,
+  "followup_cooldown_days": 7,
+  "followup_expiry_days": 30,
+  "followup_idle_seconds": 120,
+  "quiet_start_hour": 22,
+  "quiet_end_hour": 9
+}

@@ -106,6 +106,33 @@ class ConversationRepository:
             ).fetchone()
         return self._message_from_row(row)
 
+    def message_page(self, conversation_id: int, limit: int = 50,
+                     before_id: int | None = None) -> list[Message]:
+        """Read only a bounded page using the existing conversation/id index."""
+        with self._database.connection() as connection:
+            if before_id is None:
+                rows = connection.execute(
+                    "SELECT * FROM messages WHERE conversation_id = ? ORDER BY id DESC LIMIT ?",
+                    (conversation_id, limit),
+                ).fetchall()
+            else:
+                rows = connection.execute(
+                    """SELECT * FROM messages WHERE conversation_id = ? AND id < ?
+                    ORDER BY id DESC LIMIT ?""", (conversation_id, before_id, limit),
+                ).fetchall()
+        return [self._message_from_row(row) for row in reversed(rows)]
+
+    def unsummarized_messages(self, conversation_id: int, before_id: int,
+                             limit: int) -> list[Message]:
+        with self._database.connection() as connection:
+            rows = connection.execute(
+                """SELECT * FROM messages WHERE conversation_id = ? AND id < ?
+                AND id > COALESCE((SELECT MAX(end_message_id) FROM summaries
+                    WHERE conversation_id = ?), 0)
+                ORDER BY id LIMIT ?""", (conversation_id, before_id, conversation_id, limit),
+            ).fetchall()
+        return [self._message_from_row(row) for row in rows]
+
     @staticmethod
     def _conversation_from_row(row: sqlite3.Row) -> Conversation:
         return Conversation(
